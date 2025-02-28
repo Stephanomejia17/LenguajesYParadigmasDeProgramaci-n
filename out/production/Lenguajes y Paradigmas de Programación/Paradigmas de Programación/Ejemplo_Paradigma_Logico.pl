@@ -1,0 +1,30 @@
+
+% Predicado Simple o Hechos (El sistema los considera verdaderos)
+borracho('stephano').
+borracho('hector').
+
+% Predicado con más de un argumento (Relación que se usa para
+% expresar hechos o reglas)
+beber('hector', 'cerveza').
+beber('hector', 'vino').
+beber('stephano', 'cerveza').
+
+% Reglas
+tomaAlcohol(X):-borracho(X).
+resacaPesada(X):-tomaAlcohol(X),beber(X, 'vino').
+horaDesayunar(X):-X>6, X<12.
+comeTortaAhogada(X,Hora):-resacaPesada(X),horaDesayunar(Hora).
+
+
+% Condicionales
+par_o_impar(X) :- X mod 2 =:= 0 -> writeln('El numero es par'); writeln('El numero es impar').
+% X divisible por 2?
+% Sí: El numero es par
+% No: El numero es impar
+
+% Recursión
+imprimir_numeros(X, Max) :- X=< Max, writeln(X), X1 is X + 1, imprimir_numeros(X1, Max).
+% X es menor igual que Max?
+% imprime X
+% incremento
+% Recursión
