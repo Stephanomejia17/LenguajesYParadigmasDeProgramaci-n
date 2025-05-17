@@ -1,0 +1,266 @@
+#lang racket
+
+(struct cuenta (usuario saldo))
+(struct usuario ( usuario contraseña cuenta))
+(struct vendedor (usuario contraseña))
+
+(define lista-cliente
+  (list ( usuario 123 123 (cuenta 123 50000))))
+
+(define lista-vendedor
+  (list (vendedor 098 098)))
+
+; verificar pago
+
+(define (pagar)
+  (define cliente (first lista-cliente))
+  (define cuenta (usuario-cuenta cliente))
+  (define saldo (cuenta-saldo cuenta))
+  (define total (foldl (lambda (p suma) (+ suma (producto-precio p))) 0 carrito))
+
+  (if (>= saldo total)
+      (begin
+        (set! lista-cliente ; set! reasigna un valor a una variable que ya fue definida con define
+              (list (usuario
+                     (usuario-usuario cliente)
+                     (usuario-contraseña cliente)
+                     (cuenta (cuenta-usuario cuenta)
+                             (- saldo total)))))
+        (set! carrito '())
+        (printf "Pago realizado con éxito saldo actual: ~a\n" (- saldo total)))
+      (displayln "Saldo insuficiente")))
+
+
+;menu clientes validados
+(define (menu-cliente)
+              (displayln "1. Ver productos en el carrito")
+              (displayln "2. Agregar producto al carrito")
+              (displayln "3. Eliminar producto del carrito")
+              (displayln "4. Pagar")
+              (displayln "5. Exit")
+              (displayln "Ingrese el número de la opcion elegida:")
+              (let ((opcion_cliente (read)))
+              (respuesta_menu_cliente opcion_cliente)))
+
+;menu vendedor validado
+(define (menu-vendedor)
+  (displayln "1. Ver productos disponibles en inventario")
+  (displayln "2. Agregar producto al inventario")
+  (displayln "3. Eliminar producto del inventario")
+  (displayln "4. Exit")
+  (displayln "Ingrese el número de la opcion elegida:")
+  (let ((opcion_vendedor (read)))
+    (respuesta_menu_vendedor opcion_vendedor)))
+
+;menu inicial opciones
+(define (menu)
+  (displayln "1. Cliente")
+  (displayln "2. Vendedor")
+  (displayln "Ingrese el numero de la opcion elegida:")
+  (let ((opcion (read)))
+    (respuesta_menu opcion)))
+
+;menu validacion
+(define (respuesta_menu entrada)
+  (if (= entrada 1)
+      (begin
+        (displayln "Ingrese el usuario: ")
+        (let ((usuario (read)))
+          (displayln "Ingrese la contraseña: ")
+          (let ((contraseña (read)))
+          (define resultado(validar-cliente usuario contraseña))
+            (if(string=? resultado "Verificacion exitosa" )
+               (menu-cliente)
+             (displayln resultado)))))
+      
+      (if (= entrada 2)
+          (begin
+            (displayln "Ingrese el usuario: ")
+            (let ((usuario (read)))
+              (displayln "Ingrese la contraseña: ")
+              (let ((contraseña (read)))
+                (define resultado(validar-vendedor usuario contraseña))
+                (if(string=? resultado "Verificacion exitosa" )
+                   (menu-vendedor)
+                   (displayln resultado)))))
+             
+              (displayln "Esta opción no es válida"))))
+
+
+; repuestas menu cliente
+(define (respuesta_menu_cliente respuesta)
+  (if (= respuesta 1)
+      (begin
+        (subtotal-carrito)
+        (menu-cliente))
+      (if (= respuesta 2)
+          (begin
+            (agregar_productos_carrito)
+            (menu-cliente))
+          (if (= respuesta 3)
+              (begin
+                (eliminar_productos_carrito)
+                (menu-cliente))
+              (if (= respuesta 4)
+                  (begin
+                    (pagar) ; <- Aquí llamas la función de pago
+                    (menu-cliente))
+                  (if (= respuesta 5)
+                      (begin
+                        (displayln "Sesion cerrada")
+                        (menu))
+                      (begin
+                        (displayln "Esta opción no es válida")
+                        (menu))))))))
+
+
+;respuestas menu vendedor
+(define (respuesta_menu_vendedor respuesta)
+  (if (= respuesta 1)
+      (begin
+        (ver_productos)
+        (menu-vendedor))
+      (if (= respuesta 2)
+          (begin
+            (agregar_productos_inventario)
+            (menu-vendedor))
+          (if (= respuesta 3)
+              (begin
+                (eliminar_productos_inventario)
+                (menu-vendedor))
+              (if (= respuesta 4)
+                  (begin
+                    (displayln "Sesion cerrada")
+                    (menu))
+                  (begin
+                    (displayln "Esta opción no es válida")
+                    (menu)))))))
+     
+;validar cliente usuarios y contraseñas
+
+(define(validar-cliente usuario contraseña)
+  (define coincidencia
+    (filter (lambda (u)
+          (=(usuario-usuario u) usuario))
+    lista-cliente))
+  (if( null? coincidencia)
+     "Credenciales incorrectas"
+     (if(= (usuario-contraseña (first coincidencia ))contraseña)
+     "Verificacion exitosa"
+    "Credenciales incorrectas")))
+
+     
+;validar vendedor usuarios y contraseñas
+
+(define (validar-vendedor usuario contraseña)
+  (define coincidencia
+    (filter (lambda (v)
+              (= (vendedor-usuario v) usuario))
+            lista-vendedor))
+  (if (null? coincidencia)
+      "Credenciales incorrectas"
+      (if (= (vendedor-contraseña (first coincidencia)) contraseña)
+          "Verificacion exitosa"
+          "Credenciales incorrectas")))
+
+  
+
+
+(struct producto (id nombre precio))
+  
+(define lista-productos '())
+
+(define carrito '())
+
+;mostrar productos 
+(define (ver_productos)
+  (displayln "Productos disponibles:")
+  (if (null? lista-productos)
+      (displayln "No hay productos en el inventario.")
+  (for-each
+   (lambda (p)
+     (printf "ID: ~a,Nombre: ~a ,Precio: ~a\n"
+          (producto-id p)
+          (producto-nombre p)
+          (producto-precio p)))
+   lista-productos)))
+
+;agregar productos 
+(define (agregar_productos_inventario)
+  (displayln "Ingrese el ID del producto a agregar:")
+  (let ((id (read)))
+    (displayln "Ingrese el nombre del producto a agregar:")
+    (let ((nombre (read)))
+      (displayln "Ingrese el precio del producto a agregar:")
+      (let ((precio (read)))
+        (if (ormap (lambda (p) (= (producto-id p) id)) lista-productos)
+            (displayln "Error: Ya existe un producto con ese ID")
+            (begin
+              (set! lista-productos
+                    (append lista-productos
+                            (list (producto id nombre precio))))
+              (displayln "Producto agregado con éxito")))))))
+
+;Eliminar productos
+(define (eliminar_productos_inventario)
+  (displayln "Ingrese el id del producto a eliminar:")
+  (let ((id (read)))
+     (set! lista-productos
+        (filter (lambda (p)
+                  (not (=(producto-id p) id)))
+                  lista-productos))
+    (displayln "Producto eliminado con éxito")))
+    
+;agregar productos carrito 
+(define (agregar_productos_carrito)
+  (if (null? lista-productos)
+      (displayln "No hay productos en el inventario.")
+  (begin
+    (ver_productos)
+    (displayln "Ingrese el nombre del producto a agregar:")
+    (let ((id (read)))
+      (define por-agregar
+        (filter (lambda (p)
+                  (=(producto-id p)id))
+                lista-productos))
+      (set! carrito
+            (append carrito por-agregar))
+      (displayln "Producto agregado con éxito")))))
+  
+; eliminar producto carrito
+(define (eliminar_productos_carrito)
+  (displayln "Ingrese el id del producto a eliminar:")
+  (let ((id (read)))
+    (set! carrito
+        (filter (lambda (p)
+                  (not (=(producto-id p) id)))
+                  carrito))
+    (displayln "Producto eliminado con éxito")))
+
+; ver products carrito
+(define (ver_productos_carrito)
+  (displayln "Productos en el carrito:")
+  (if (null? carrito)
+      (displayln "No hay productos en el carrito.")
+       (for-each
+   (lambda (p)
+     (printf "ID: ~a,Nombre: ~a ,Precio: ~a\n"
+          (producto-id p)
+          (producto-nombre p)
+          (producto-precio p)))
+   carrito)))
+
+
+; mostrar y subtotal
+(define (subtotal-carrito)
+  (ver_productos_carrito)
+  (let* ((cantidad(length carrito))
+    (total(foldl (lambda (p suma)
+           (+ suma (producto-precio p)))
+         0
+         carrito)))
+  (printf "Total productos: ~a.........Total: ~a\n"
+          cantidad total)))
+  
+
+(menu)
